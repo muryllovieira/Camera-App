@@ -1,39 +1,60 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button, TouchableOpacity } from 'react-native';
-import { CameraView, CameraType, useCameraPermissions, FlashMode  } from 'expo-camera';
-import { useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { CameraView as ExpoCamera, CameraType, useCameraPermissions } from 'expo-camera';
+import { useState, useEffect } from 'react';
+import CameraView from './src/components/CameraView/CameraView';
+import * as MediaLibrary from 'expo-media-library';
 
 export default function App() {
   const [type, setType] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
+  const [hasPermission, setHasPermission] = useState<boolean>(false);
+  const [hasMediaPermission, setHasMediaPermission] = useState<boolean>(false);
 
-  if (!permission) {
-    return <View />;
+  useEffect(() => {
+    (async () => {
+      if (!permission) {
+        const { granted } = await requestPermission();
+        setHasPermission(granted);
+      } else {
+        setHasPermission(permission.granted);
+      }
+    })();
+
+    (async () => {
+      const {status} = await MediaLibrary.requestPermissionsAsync()
+      setHasMediaPermission(status === 'granted')
+      console.log(status);
+      
+    })()
+
+  }, [permission]);
+
+  function flipCamera() {
+    setType(current => (current === 'back' ? 'front' : 'back'));
   }
 
-  if (!permission.granted) {
+  // if (!hasPermission) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text>Precisamos da sua permissão para mostrar a câmera</Text>
+  //       <TouchableOpacity onPress={requestPermission} style={styles.button}>
+  //         <Text>Abrir a Câmera</Text>
+  //       </TouchableOpacity>
+  //     </View>
+  //   );
+  // }
+
+  if (hasMediaPermission === false || null) {
     return (
       <View style={styles.container}>
-        <Text style={styles.message}>Precisamos da sua permissão para mostrar a câmera
-        </Text>
-        <Button onPress={requestPermission} title="Abrir a Câmera" />
+        <Text>Você não tem permissão de mídia.</Text>
       </View>
     );
   }
 
-  function toggleCameraFacing() {
-    setType(current => (current === 'back' ? 'front' : 'back'));
-  }
-
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={type}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Câmera Invertida</Text>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+      <CameraView type={type} onFlipCamera={flipCamera} />
     </View>
   );
 }
@@ -42,28 +63,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-  },
-  message: {
-    textAlign: 'center',
-    paddingBottom: 10,
-  },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 64,
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
   button: {
-    flex: 1,
-    alignSelf: 'flex-end',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#007AFF',
+    borderRadius: 5,
   },
 });
